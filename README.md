@@ -14,10 +14,12 @@ ZzzButton <DRIVER> button(debounceMs=50, longPressMs=1000); //Constructor need a
 ### Functions
 
 ```cpp
-void update();            // To call in Arduino loop
-void size();              // Number of buttons managed
-void isPressed(buttonIndex=0); // Return true if specified button is pressed. Result is based on internal state (no direct verification, and debounced)
-void setCallback();       // Set the callback to call on each button state change. (ie: void buttonChanged(size_t buttonIndex, unsigned int buttonState) )
+void update();        // To call in Arduino loop
+void size();          // Number of buttons managed
+void isPressed(buttonIndex=0); // Return true if specified button is pressed.
+                               // Result is based on internal state (no direct verification, and debounced)
+void setCallback();   // Set the callback to call on each button state change.
+                      // (ie: void buttonChanged(size_t buttonIndex, unsigned int buttonState) )
 ```
 
 ### Included examples
@@ -32,8 +34,19 @@ void setCallback();       // Set the callback to call on each button state chang
 
 ZzzButton < ZzzButtonDriverPin<1> > button;
 
+void buttonChanged(size_t buttonIndex, unsigned int buttonState)
+{
+
+    ...
+
+}
+
 void setup()
 {
+    ...
+    
+    button.setCallback(buttonChanged);
+
     ...
 }
 
