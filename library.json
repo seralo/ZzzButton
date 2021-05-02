@@ -1,0 +1,13 @@
+{
+  "name": "ZzzButton",
+  "keywords": "buttons",
+  "description": "Simple Arduino / C++ library to manage buttons",
+  "authors": {
+    "name": "Seralo",
+    "email": "seralo@free.fr",
+    "url": "https://github.com/seralo/ZzzButton"
+  },
+  "version": "1.0.0",
+  "frameworks": "arduino",
+  "platforms": "*"
+}

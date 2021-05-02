@@ -1,0 +1,21 @@
+#######################################
+# Syntax Coloring Map
+#######################################
+
+#######################################
+# Datatypes (KEYWORD1)
+#######################################
+
+ZzzButton	KEYWORD1	ZzzButton
+
+#######################################
+# Methods and Functions (KEYWORD2)
+#######################################
+isPressed	KEYWORD2
+setCallback	KEYWORD2
+update	KEYWORD2
+size	KEYWORD2
+
+#######################################
+# Constants (LITERAL1)
+#######################################
