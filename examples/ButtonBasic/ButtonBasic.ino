@@ -8,7 +8,7 @@ ZzzButton < ZzzButtonDriverMultiPins<2, INPUT, LOW, 18,19> > button;
 
 
 
- mo {
+void buttonChanged(size_t buttonIndex, unsigned int buttonState) {
 	Serial.print("Button change: #");
 	Serial.print(buttonIndex);
 	Serial.print(" state: ");
