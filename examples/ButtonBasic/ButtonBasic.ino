@@ -1,10 +1,11 @@
 #include <ZzzButton.h>
 
 //Single pin button
-//ZzzButton < ZzzButtonDriverPin<18, INPUT, LOW> > button;
+//ZzzButton < ZzzButtonDriverPin<18> > button;
+//ZzzButton < ZzzButtonDriverPin<18, INPUT, LOW, 5000> > button;
 
 //Multiple buttons: 2 buttons in INPUT mode and LOW=press on PIN 18 and PIN 19
-ZzzButton < ZzzButtonDriverMultiPins<2, INPUT, LOW, 18,19> > button;
+ZzzButton < ZzzButtonDriverMultiPins<INPUT, LOW, 5000, 18,19> > button;
 
 
 
