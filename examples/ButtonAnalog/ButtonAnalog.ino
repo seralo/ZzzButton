@@ -4,15 +4,16 @@
 #define MY_ANALOG_PIN  18
 
 //Check value every 10000 us=10 ms=0.01 seconds
-#define MY_INTERVAL    10000
 #define MY_MARGIN      50
 //Multiple buttons connected to Analog pin
 //Define 3 buttons at values: 300, 500, 900
-//ZzzButton < ZzzButtonDriverAnalog<MY_ANALOG_PIN, MY_INTERVAL, MY_MARGIN, 300, 500, 900> > button;
+ZzzButtonDriverAnalog<MY_ANALOG_PIN, MY_MARGIN, 300, 500, 900> buttonDriver;
 
 //For debug: Single button with high margin to detect all changes between (23 and 1023)
 #define MY_MARGIN_DEBUG   500
-ZzzButton < ZzzButtonDriverAnalog<MY_ANALOG_PIN, MY_INTERVAL, MY_MARGIN_DEBUG, 523> > button;
+ZzzButtonDriverAnalog<MY_ANALOG_PIN, MY_MARGIN_DEBUG, 523> buttonDriverDebug;
+
+ZzzButton button(buttonDriver);
 
 
 void buttonChanged(size_t buttonIndex, unsigned int buttonState) {
@@ -20,17 +21,17 @@ void buttonChanged(size_t buttonIndex, unsigned int buttonState) {
   Serial.print(buttonIndex);
   Serial.print(" state: ");
   switch(buttonState) {
-    case ZZZ_BUTTON_STATE_PRESS:
+    case ZzzButton::STATE_PRESS:
       Serial.print("PRESS");
       break;
-    case ZZZ_BUTTON_STATE_PRESS_LONG:
+    case ZzzButton::STATE_PRESS_LONG:
       Serial.print("PRESS LONG");
 
       Serial.print(" Read value=");
       Serial.print(analogRead(MY_ANALOG_PIN));
       
       break;
-    case ZZZ_BUTTON_STATE_RELEASE:
+    case ZzzButton::STATE_RELEASE:
       Serial.print("RELEASE");
       break;
     default:

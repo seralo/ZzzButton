@@ -4,11 +4,34 @@ Simple Arduino / C++ library to control buttons
 
 The library consist of a single header file (ZzzButton.h) containing template classes.
 
+Supported features:
+- Debounce
+- Long press
+- Callback
+- Multiple button types support
+
+The library can adapt to multiple buttons type using drivers.
+
+Supported drivers:
+- PIN (Internal pull up, External pull up, Logic inverted)
+- Multiple PINS (Manage several PINS simultaneously to avoid parallel polling and limit resources)
+- Keypad matrix (Flexible layout: 3x4, 4x4...)
+- Analog buttons (Not fully tested)
+- Keypad over I2C with PCF8574 (Not fully tested)
+- Multiple drivers (Not fully tested)
+
+
+To be implemented:
+- "Pin" buttons over I2C M5Stack PbHub
+- "Pin" buttons over I2C PCF8574
 
 ### Constructor
 
 ```cpp
-ZzzButton <DRIVER> button(debounceMs=50, longPressMs=1000); //Constructor need a driver class as template param
+ZzzButton button(pin, debounceMs=50, longPressMs=1000); //Simple mode with a single PIN in INPUT_PULLUP
+
+ZzzButtonDriverMultiPins<INPUT, LOW, pin1, pin2> buttonDriver; //Define driver to manage 2 buttons on 2 pins in INPUT mode with press=LOW
+ZzzButton button(buttonDriver, debounceMs=50, longPressMs=1000); //Instance to manage buttons
 ```
 
 ### Functions
@@ -32,7 +55,7 @@ void setCallback();   // Set the callback to call on each button state change.
 ```cpp
 #include <ZzzButton.h>
 
-ZzzButton < ZzzButtonDriverPin<1> > button;
+ZzzButton button(1);
 
 void buttonChanged(size_t buttonIndex, unsigned int buttonState)
 {

@@ -1,7 +1,8 @@
 #include <ZzzButton.h>
 
-//Check value every 5000 us=5 ms=0.05 seconds
-#define MY_INTERVAL 50000
+//3x4 keypad
+#define MY_NB_ROWS   3
+
 #define MY_PIN_ROW_0 17
 #define MY_PIN_ROW_1 25
 #define MY_PIN_ROW_2 26
@@ -10,13 +11,20 @@
 #define MY_PIN_COL_2 12
 #define MY_PIN_COL_3 14
 
-//3x4 keypad
-#define MY_NB_ROWS   3
-ZzzButton < ZzzButtonDriverKeyPadMatrix<MY_INTERVAL, MY_NB_ROWS,
-		MY_PIN_ROW_0, MY_PIN_ROW_1, MY_PIN_ROW_2,
-		MY_PIN_COL_0, MY_PIN_COL_1, MY_PIN_COL_2, MY_PIN_COL_3
-	> > button;
+ZzzButtonDriverKeyPadMatrix<MY_NB_ROWS,
+   MY_PIN_ROW_0, MY_PIN_ROW_1, MY_PIN_ROW_2,
+   MY_PIN_COL_0, MY_PIN_COL_1, MY_PIN_COL_2, MY_PIN_COL_3
+  > buttonDriver;
 
+/* */
+
+
+#include <Wire.h>
+
+#define MY_NB_COLS   4
+ZzzButtonDriverI2CKeyPadPCF8574<MY_NB_ROWS, MY_NB_COLS, TwoWire> buttonDriver2(&Wire);
+
+ZzzButton button(buttonDriver);
 
 void buttonChanged(size_t buttonIndex, unsigned int buttonState) {
   Serial.print("Button change: #");
@@ -29,13 +37,13 @@ void buttonChanged(size_t buttonIndex, unsigned int buttonState) {
 
   Serial.print(" state: ");
   switch(buttonState) {
-    case ZZZ_BUTTON_STATE_PRESS:
+    case ZzzButton::STATE_PRESS:
       Serial.print("PRESS");
       break;
-    case ZZZ_BUTTON_STATE_PRESS_LONG:
+    case ZzzButton::STATE_PRESS_LONG:
       Serial.print("PRESS LONG");
       break;
-    case ZZZ_BUTTON_STATE_RELEASE:
+    case ZzzButton::STATE_RELEASE:
       Serial.print("RELEASE");
       break;
   }

@@ -1,12 +1,16 @@
 #include <ZzzButton.h>
 
+ZzzButton button(18);
+
+/*
 //Single pin button
-//ZzzButton < ZzzButtonDriverPin<18> > button;
-//ZzzButton < ZzzButtonDriverPin<18, INPUT, LOW, 5000> > button;
+ZzzButtonDriverPin<INPUT, LOW> buttonDriverPin(18);
 
 //Multiple buttons: 2 buttons in INPUT mode and LOW=press on PIN 18 and PIN 19
-ZzzButton < ZzzButtonDriverMultiPins<INPUT, LOW, 5000, 18,19> > button;
+ZzzButtonDriverMultiPins<INPUT, LOW, 18,19> buttonDriverMultiPins;
 
+ZzzButton button(buttonDriver);
+*/
 
 
 void buttonChanged(size_t buttonIndex, unsigned int buttonState) {
@@ -14,13 +18,13 @@ void buttonChanged(size_t buttonIndex, unsigned int buttonState) {
 	Serial.print(buttonIndex);
 	Serial.print(" state: ");
   switch(buttonState) {
-    case ZZZ_BUTTON_STATE_PRESS:
+    case ZzzButton::STATE_PRESS:
 	    Serial.print("PRESS");
       break;
-    case ZZZ_BUTTON_STATE_PRESS_LONG:
+    case ZzzButton::STATE_PRESS_LONG:
       Serial.print("PRESS LONG");
       break;
-    case ZZZ_BUTTON_STATE_RELEASE:
+    case ZzzButton::STATE_RELEASE:
       Serial.print("RELEASE");
       break;
     default:

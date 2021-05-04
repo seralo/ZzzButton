@@ -4,73 +4,57 @@
 #ifndef ZZZ_BUTTON_H
 #define ZZZ_BUTTON_H
 
-/* Use define since ZzzButton is a template class (ZzzButton::STATE_PRESS result in compile errors) */
-#define ZZZ_BUTTON_STATE_PRESS       1
-#define ZZZ_BUTTON_STATE_PRESS_LONG  2
-#define ZZZ_BUTTON_STATE_RELEASE     4
-
-/* Default values */
-#define ZZZ_BUTTON_DEFAULT_INTERVAL_US     5000
-
-#define ZZZ_BUTTON_DEFAULT_DEBOUNCE_MS     50
-#define ZZZ_BUTTON_DEFAULT_LONG_PRESS_MS   1000
-
-
 /*
- TODO keypad matrix over i2c (ie: pcf8574)
  TODO i2c controlled buttons driver (M5Stack PbHub B, pcf8574...)
 */
 
 /** Callback to receive button change notifications */
 typedef void(*ZzzButtonCallback)(size_t buttonIndex, unsigned int buttonState);
 
-/** Abstract button driver */
-template <size_t SIZE=1, int INTERVAL_US=ZZZ_BUTTON_DEFAULT_INTERVAL_US> class ZzzButtonDriver {
-	public:
+/** Abstract button driver. Class to override to implement a new button driver */
+class ZzzButtonDriver {
+	protected:
 		ZzzButtonDriver() {
 		}
-		
+	public:
 		/** Number of buttons managed by this driver */
-		size_t size() {
-			return SIZE;
-		}
-
-		/** Return the interval in microseconds between two state requests to avoid too much requests. */
-		unsigned long getIntervalUs() {
-			return INTERVAL_US;
-		}
+		virtual size_t size() const;
 
 		/** Return buttons states. Bitmask of all managed buttons. 1 is pressed, 0 is released. */
-		unsigned long getPressedStates();
+		virtual unsigned long getPressedStates();
 };
 
 
 /**
  * Driver for a single classic button.
- * @param PIN specify the pin where the button is connected.
  * @param PIN_MODE Default PIN_MODE=INPUT_PULLUP is for internal pull up: One side of the button is connected to the given pin the other side to GND
  *         PIN_MODE=INPUT for external pull up: One side of the button is connected to a voltage divider (two resistors) the other side to GND
  * @param PRESS_VALUE Default PRESS_VALUE=LOW
  */
-template <int PIN, int PIN_MODE=INPUT_PULLUP, int PRESS_VALUE=LOW, int INTERVAL_US=ZZZ_BUTTON_DEFAULT_INTERVAL_US> class ZzzButtonDriverPin : public ZzzButtonDriver<1, INTERVAL_US> {
+template <int PIN_MODE=INPUT_PULLUP, int PRESS_VALUE=LOW> class ZzzButtonDriverPin : public ZzzButtonDriver {
+	protected:
+		int _pin;
 	public:
-		ZzzButtonDriverPin() {
-			pinMode(PIN, PIN_MODE);
+		/** @param pin specify the pin where the button is connected. */
+		ZzzButtonDriverPin(int pin) {
+			_pin=pin;
+			pinMode(_pin, PIN_MODE);
 		}
 
+		virtual size_t size() const final {
+			return 1;
+		}
 
-		/** Return buttons states. Bitmask of all managed buttons. 1 is pressed, 0 is released. */
-		unsigned long getPressedStates() {
-			return (digitalRead(PIN)==PRESS_VALUE) ? 1 : 0;
+		virtual unsigned long getPressedStates() override {
+			return (digitalRead(_pin)==PRESS_VALUE) ? 1 : 0;
 		}
 };
 
 
 /**
  * Driver for multiple buttons. Maximum is unsigned long bit size (64 buttons in general) 
- * //size_t NB_PINS 
  */
-template <int PIN_MODE, int PRESS_VALUE, int INTERVAL_US, int ... PINS> class ZzzButtonDriverMultiPins : public ZzzButtonDriver<sizeof...(PINS), INTERVAL_US>  {
+template <int PIN_MODE, int PRESS_VALUE, int ... PINS> class ZzzButtonDriverMultiPins : public ZzzButtonDriver {
 	protected:
 		const int _pins[sizeof...(PINS)]={PINS...};
 	public:
@@ -80,8 +64,11 @@ template <int PIN_MODE, int PRESS_VALUE, int INTERVAL_US, int ... PINS> class Zz
 			}
 		}
 
-		/** Return buttons states. Bitmask of all managed buttons. 1 is pressed, 0 is released. */
-		unsigned long getPressedStates() {
+		virtual size_t size() const final override {
+			return sizeof...(PINS);
+		}
+
+		virtual unsigned long getPressedStates() override {
 			unsigned long result=0;
 			for (size_t i=0;i<sizeof...(PINS);i++){
 				if ((digitalRead(_pins[i])==PRESS_VALUE)) {
@@ -101,7 +88,7 @@ template <int PIN_MODE, int PRESS_VALUE, int INTERVAL_US, int ... PINS> class Zz
  * MARGIN margin to consider the values as valid (ie: 50)
  * VALUES to identify pressed buttons based on analogRead returnes value (0-1023). (ie: 100, 300)
  */
-template <int PIN, int INTERVAL_US, int MARGIN, int ... VALUES> class ZzzButtonDriverAnalog : public ZzzButtonDriver<sizeof...(VALUES), INTERVAL_US>  {
+template <int PIN, int MARGIN, int ... VALUES> class ZzzButtonDriverAnalog : public ZzzButtonDriver {
 	protected:
 		const int _values[sizeof...(VALUES)]={VALUES...};
 
@@ -109,8 +96,11 @@ template <int PIN, int INTERVAL_US, int MARGIN, int ... VALUES> class ZzzButtonD
 		ZzzButtonDriverAnalog() {
 		}
 
-		/** Return buttons states. Bitmask of all managed buttons. 1 is pressed, 0 is released. */
-		unsigned long getPressedStates() {
+		virtual size_t size() const final override {
+			return sizeof...(VALUES);
+		}
+
+		virtual unsigned long getPressedStates() override {
 			int analogValue=analogRead(PIN);
 			for (size_t i=0;i<sizeof...(VALUES);i++ ){
 				int diff=(analogValue-_values[i]);
@@ -131,7 +121,7 @@ template <int PIN, int INTERVAL_US, int MARGIN, int ... VALUES> class ZzzButtonD
  * Buttons index for 2x3 2 rows:  0 1 2
  *                                3 4 5
  */
-template <int INTERVAL_US, int NB_ROWS, int ... PINS> class ZzzButtonDriverKeyPadMatrix : public ZzzButtonDriver<NB_ROWS * (sizeof...(PINS)-NB_ROWS), INTERVAL_US>  {
+template <uint8_t NB_ROWS, int ... PINS> class ZzzButtonDriverKeyPadMatrix : public ZzzButtonDriver {
 	protected:
 		const int _pins[sizeof...(PINS)]={PINS...};
 
@@ -142,8 +132,11 @@ template <int INTERVAL_US, int NB_ROWS, int ... PINS> class ZzzButtonDriverKeyPa
 		    }
 		}
 
-		/** Return buttons states. Bitmask of all managed buttons. 1 is pressed, 0 is released. */
-		unsigned long getPressedStates() {
+		virtual size_t size() const final override {
+			return NB_ROWS * (sizeof...(PINS)-NB_ROWS);
+		}
+
+		virtual unsigned long getPressedStates() override {
 			unsigned long result=0;
 			for (int c=NB_ROWS; c<sizeof...(PINS); c++) {
 				pinMode(_pins[c], OUTPUT);
@@ -160,32 +153,85 @@ template <int INTERVAL_US, int NB_ROWS, int ... PINS> class ZzzButtonDriverKeyPa
 		}
 };
 
-
 /**
  * FIXME Test
- * Driver for multiple drivers
- * NB_BUTTONS is the number of pins managed by all given drivers (might differ from number for drivers given)
+ * Driver to connect a matrix keypad through I2C and PCF8574
+ * @param ADDRESS I2C address to access PCF8574 connected to the keypad
+ * @param WIRE template parameter allow to define custom Wire library
+ * @param NB_ROWS The number of rows the keypad have
+ * @param NB_COLS The number of cols the keypad have
+ *
+ * Assuming the keypad is connected to the PCF8574 as follow: PIN0=ROW0, ... PINx=ROWx, PINx+1=COL0, PINx+y=COLy
+ * PCF8574 controls 8 bits so NB_ROWS+NB_COLS<=8 
+ * Buttons index for 2x3 2 rows:  0 1 2
+ *                                3 4 5
  */
-template <typename DRIVER1, typename DRIVER2, size_t NB_BUTTONS=2, int INTERVAL_US=ZZZ_BUTTON_DEFAULT_INTERVAL_US> class ZzzButtonDriverMulti2
-		: public ZzzButtonDriver<NB_BUTTONS, INTERVAL_US> {
+template <uint8_t NB_ROWS, uint8_t NB_COLS, typename WIRE, uint8_t ADDRESS=0x38> class ZzzButtonDriverI2CKeyPadPCF8574 : public ZzzButtonDriver {
 	protected:
-		DRIVER1 _driver1;
-		DRIVER2 _driver2;
+		WIRE *_pWire;
 
 	public:
-		ZzzButtonDriverMulti2() {
+		ZzzButtonDriverI2CKeyPadPCF8574(void* pParams) {
+			_pWire=(WIRE*)pParams;
+			_pWire->begin();
 		}
 
-		/** Return buttons states. Bitmask of all managed buttons. 1 is pressed, 0 is released. */
-		unsigned long getPressedStates() {
-			unsigned long result=_driver1.getPressedStates();
-			size_t offset=_driver1.size();
+		virtual size_t size() const final override {
+			return NB_ROWS * NB_COLS;
+		}
 
-			unsigned long pressedStates=_driver2.getPressedStates();
-			if (pressedStates>0) {
-				result|=(offset<<pressedStates);
+		virtual unsigned long getPressedStates() override {
+			if (_pWire==nullptr) {
+				return 0; //need to set wire
 			}
-			return result;
+
+			if (NB_ROWS>5) {
+				return 0; //not supported
+			}
+			uint8_t rowMask=(1<<NB_ROWS)-1; //1: 0b00000001, 2: 0b00000011, ... 5: 0b00011111 (2^5 - 1 = 32 - 1 = 31)
+
+			_pWire->beginTransmission(ADDRESS);
+  			_pWire->write(rowMask);
+  			if (_pWire->endTransmission() != 0) { //communication error
+				return 0;
+			}
+			_pWire->requestFrom(ADDRESS, (uint8_t)1);
+			uint8_t rowResponse=_pWire->read();
+			
+			if (rowResponse==rowMask) { //no press detected
+				return 0;
+			}
+
+			uint8_t colMask=~rowMask; //Invert mask to request column
+			_pWire->beginTransmission(ADDRESS);
+  			_pWire->write(colMask);
+  			if (_pWire->endTransmission() != 0) { //communication error
+				return 0;
+			}
+			_pWire->requestFrom(ADDRESS, (uint8_t)1);
+			uint8_t colResponse=_pWire->read();
+
+			if (colResponse==colMask) { //no press detected
+				return 0;
+			}
+
+			int row=-1; //read row index with LOW value in the response
+			for (int r=0;r<NB_ROWS; r++) {
+				if (bitRead(rowResponse, r)==0) {
+					row=r;
+				}
+			}
+			int col=-1; //read col index with LOW value in the response
+			for (int c=0;c<NB_COLS; c++) {
+				if (bitRead(colResponse, NB_ROWS+c)==0) {
+					col=c;
+				}
+			}
+			if (row==-1 || col==-1) {
+				//invalid data
+				return 0;
+			}
+			return 1 << ((row*NB_ROWS + col)+1);
 		}
 };
 
@@ -193,33 +239,66 @@ template <typename DRIVER1, typename DRIVER2, size_t NB_BUTTONS=2, int INTERVAL_
 /**
  * FIXME Test
  * Driver for multiple drivers
- * NB_BUTTONS is the number of pins managed by all given drivers (might differ from number for drivers given)
+ * NB_DRIVER is the number of drivers to allocate. It should match constructor call otherwise result is unpredictable. (Max 5 drivers)
  */
-template <typename DRIVER1, typename DRIVER2, typename DRIVER3, size_t NB_BUTTONS=3, int INTERVAL_US=ZZZ_BUTTON_DEFAULT_INTERVAL_US> class ZzzButtonDriverMulti3
-		: public ZzzButtonDriver<NB_BUTTONS, INTERVAL_US> {
+template <size_t NB_DRIVER> class ZzzButtonDriverMulti
+		: public ZzzButtonDriver {
 	protected:
-		DRIVER1 _driver1;
-		DRIVER2 _driver2;
-		DRIVER2 _driver3;
-
-	public:
-		ZzzButtonDriverMulti3() {
+		ZzzButtonDriver *_pDriver[NB_DRIVER];
+		size_t _nbButtons;
+		void computeButtons() {
+			_nbButtons=0;
+			for (int i=0;i<NB_DRIVER;i++) {
+				_nbButtons+=_pDriver[i]->size();
+			}
 		}
 
-		/** Return buttons states. Bitmask of all managed buttons. 1 is pressed, 0 is released. */
-		unsigned long getPressedStates() {
-			unsigned long result=_driver1.getPressedStates();
-			size_t offset=_driver1.size();
+	public:
+		/** At least 2 drivers (use directly the driver if only one driver) */
+		ZzzButtonDriverMulti(ZzzButtonDriver &driver1, ZzzButtonDriver &driver2) {
+			_pDriver[0]=&driver1;
+			_pDriver[1]=&driver2;
+			computeButtons();
+		}
 
-			unsigned long pressedStates=_driver2.getPressedStates();
-			if (pressedStates>0) {
-				result|=(offset<<pressedStates);
-			}
-			offset+=_driver2.size();
+		ZzzButtonDriverMulti(ZzzButtonDriver &driver1, ZzzButtonDriver &driver2, ZzzButtonDriver &driver3) {
+			_pDriver[0]=&driver1;
+			_pDriver[1]=&driver2;
+			_pDriver[2]=&driver3;
+			computeButtons();
+		}
 
-			pressedStates=_driver3.getPressedStates();
-			if (pressedStates>0) {
-				result|=(offset<<pressedStates);
+		ZzzButtonDriverMulti(ZzzButtonDriver &driver1, ZzzButtonDriver &driver2, ZzzButtonDriver &driver3, ZzzButtonDriver &driver4) {
+			_pDriver[0]=&driver1;
+			_pDriver[1]=&driver2;
+			_pDriver[2]=&driver3;
+			_pDriver[3]=&driver4;
+			computeButtons();
+		}
+
+		ZzzButtonDriverMulti(ZzzButtonDriver &driver1, ZzzButtonDriver &driver2, ZzzButtonDriver &driver3, ZzzButtonDriver &driver4, ZzzButtonDriver &driver5) {
+			_pDriver[0]=&driver1;
+			_pDriver[1]=&driver2;
+			_pDriver[2]=&driver3;
+			_pDriver[3]=&driver4;
+			_pDriver[4]=&driver5;
+			computeButtons();
+		}
+
+		virtual size_t size() const final override {
+			return _nbButtons;
+		}
+
+		virtual unsigned long getPressedStates() override {
+			unsigned long result=_pDriver[0]->getPressedStates();
+			size_t offset=_pDriver[0]->size();
+
+			for (int i=1;i<NB_DRIVER;i++) {
+				unsigned long pressedStates=_pDriver[i]->getPressedStates();
+				if (pressedStates>0) { //if at least one press detected update result
+					result|=(offset<<pressedStates);
+				}
+				offset=_pDriver[i]->size();
 			}
 			return result;
 		}
@@ -228,9 +307,9 @@ template <typename DRIVER1, typename DRIVER2, typename DRIVER3, size_t NB_BUTTON
 
 /**
  * Template class to manage a button or a set of buttons. The template need a Driver parameter to check the buttons states.
- * The driver class must implement getPressedStates(), size() and getStepUs().
+ * The driver class must implement getPressedStates(), size() and getIntervalUs().
  */
-template <typename DRIVER> class ZzzButton {
+class ZzzButton {
 	protected:
 		unsigned long _debounceMs;
 		unsigned long _longPressMs;
@@ -251,15 +330,23 @@ template <typename DRIVER> class ZzzButton {
 		size_t lastClicButtonIndex=0;
 		unsigned long lastClicMs=0;
 
-		DRIVER _driver;
+		ZzzButtonDriver *_pDriver;
 
 		/** Callback called on status change */
 		ZzzButtonCallback _callback=nullptr;
 
 	public:
-		static const int STATE_PRESS=ZZZ_BUTTON_STATE_PRESS;
-		static const int STATE_PRESS_LONG=ZZZ_BUTTON_STATE_PRESS_LONG;
-		static const int STATE_RELEASE=ZZZ_BUTTON_STATE_RELEASE;
+		static const int STATE_PRESS=1;
+		static const int STATE_PRESS_LONG=2;
+		static const int STATE_RELEASE=4;
+		
+		/** Default interval in microseconds */
+		static const unsigned long DEFAULT_INTERVAL_US=10000;
+		/** Default debounce time in milliseconds */
+		static const unsigned long DEFAULT_DEBOUNCE_MS=50;
+		/** Default long press time in milliseconds */
+		static const unsigned long DEFAULT_LONG_PRESS_MS=1000;
+
 
 		/** Set the callback to call on each button state change. */
 		void setCallback(ZzzButtonCallback callback) {
@@ -268,7 +355,7 @@ template <typename DRIVER> class ZzzButton {
 
 		/** Number of buttons managed */
 		size_t size() {
-			return _driver.size();
+			return _pDriver->size();
 		}
 
 		/**
@@ -288,7 +375,7 @@ template <typename DRIVER> class ZzzButton {
 		void update() {
 			//check elapsed time (overflow proof)
 			if (micros() - _lastRequestUs > _intervalUs) {
-				unsigned long newStates=_driver.getPressedStates();
+				unsigned long newStates=_pDriver->getPressedStates();
 				_lastRequestUs=micros();
 
 				if (newStates!=_lastStates) { //For debounce need at least 2 successive identical state
@@ -303,7 +390,7 @@ template <typename DRIVER> class ZzzButton {
 							_lastNotifiedStates=_lastStates;
 							_lastNotifiedStatesMs=millis();	
 							//check what changed
-							for (size_t i=0;i<_driver.size();i++) {
+							for (size_t i=0;i<_pDriver->size();i++) {
 								unsigned long bitMask=(1<<i);
 								if ((oldStates & bitMask)!=(_lastStates & bitMask)) {
 									int state=(_lastStates & bitMask)!=0 ? STATE_PRESS : STATE_RELEASE;
@@ -322,7 +409,7 @@ template <typename DRIVER> class ZzzButton {
 						if (_lastNotifiedStates > 0) {
 							if (millis() - _lastNotifiedStatesMs > _longPressMs) {
 								if (_callback!=nullptr) {
-									for (size_t i=0;i<_driver.size();i++) {
+									for (size_t i=0;i<_pDriver->size();i++) {
 										unsigned long bitMask=(1<<i);
 										if ((_lastNotifiedStates & bitMask)!=0) {
 											_callback(i, STATE_PRESS_LONG);
@@ -337,11 +424,27 @@ template <typename DRIVER> class ZzzButton {
 			}
 		}
 
-		/** Constructor */
-		ZzzButton(unsigned long debounceMs=ZZZ_BUTTON_DEFAULT_DEBOUNCE_MS, unsigned long longPressMs=ZZZ_BUTTON_DEFAULT_LONG_PRESS_MS) {
-			_intervalUs=_driver.getIntervalUs();
+		/** Constructor 
+		 * @param driver Underlying instance to access button(s).
+		 * @param longPressMs time in milliseconds before long press is notified.
+		 * @param debounceMs time in milliseconds to debounce.
+		 * @param intervalUs minimum time in microseconds to wait before next driver requests.
+		 */
+		ZzzButton(ZzzButtonDriver &driver, unsigned long longPressMs=ZzzButton::DEFAULT_LONG_PRESS_MS,
+			unsigned long debounceMs=ZzzButton::DEFAULT_DEBOUNCE_MS, unsigned long intervalUs=ZzzButton::DEFAULT_INTERVAL_US) {
+			_pDriver=&driver;
 			_debounceMs=debounceMs;
 			_longPressMs=longPressMs;
+			_intervalUs=intervalUs;
+		}
+
+		/** Helper for single pin INPUT_PULLUP button */
+		ZzzButton(int pin, unsigned long longPressMs=ZzzButton::DEFAULT_LONG_PRESS_MS,
+			unsigned long debounceMs=ZzzButton::DEFAULT_DEBOUNCE_MS, unsigned long intervalUs=ZzzButton::DEFAULT_INTERVAL_US) {
+			_pDriver=new ZzzButtonDriverPin<>(pin);
+			_debounceMs=debounceMs;
+			_longPressMs=longPressMs;
+			_intervalUs=intervalUs;
 		}
 };
 
