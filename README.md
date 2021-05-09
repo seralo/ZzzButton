@@ -16,7 +16,7 @@ The library can adapt to multiple buttons type using drivers.
 - Multiple PINS: Manage several PINS simultaneously to avoid parallel polling and limit resources
 - Keypad matrix: Flexible layout: 3x4, 4x4...
 - Analog buttons: (Not fully tested) Multiple buttons connected to a single analog pin, using voltage divider. For wiring example check this https://www.instructables.com/How-to-Multiple-Buttons-on-1-Analog-Pin-Arduino-Tu/
-- Keypad over I2C with PCF8574: (Not fully tested) Keypad connected to PCF8574 over I2C
+- Keypad over I2C with PCF8574: Keypad connected to PCF8574 over I2C
 - Multiple drivers: (Not fully tested) To manage different button types with the same ZzzButton instance.
 
 ### To be implemented

@@ -4,6 +4,9 @@
 #ifndef ZZZ_BUTTON_H
 #define ZZZ_BUTTON_H
 
+#define ZZZ_DEFAULT_PCF8574_ADDRESS   0x20
+#define ZZZ_DEFAULT_PCF8574A_ADDRESS  0x38
+
 /*
  TODO i2c controlled buttons driver (M5Stack PbHub B, pcf8574...)
 */
@@ -154,7 +157,7 @@ template <uint8_t NB_ROWS, int ... PINS> class ZzzButtonDriverKeyPadMatrix : pub
 };
 
 /**
- * Driver to connect a matrix keypad through I2C and PCF8574
+ * Driver to connect a matrix keypad through PCF8574 using I2C protocol
  * @param ADDRESS I2C address to access PCF8574 connected to the keypad
  * @param WIRE template parameter allow to define custom Wire library
  * @param NB_ROWS The number of rows the keypad have
@@ -165,7 +168,7 @@ template <uint8_t NB_ROWS, int ... PINS> class ZzzButtonDriverKeyPadMatrix : pub
  * Buttons index for 2x3 2 rows:  0 1 2
  *                                3 4 5
  */
-template <uint8_t NB_ROWS, uint8_t NB_COLS, typename WIRE, uint8_t ADDRESS=0x38> class ZzzButtonDriverI2CKeyPadPCF8574 : public ZzzButtonDriver {
+template <uint8_t NB_ROWS, uint8_t NB_COLS, typename WIRE, uint8_t ADDRESS=ZZZ_DEFAULT_PCF8574_ADDRESS> class ZzzButtonDriverI2CKeyPadPCF8574 : public ZzzButtonDriver {
 	protected:
 		WIRE *_pWire;
 		uint8_t _rowMask;
