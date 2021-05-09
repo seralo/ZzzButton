@@ -41,7 +41,7 @@ template <int PIN_MODE=INPUT_PULLUP, int PRESS_VALUE=LOW> class ZzzButtonDriverP
 			pinMode(_pin, PIN_MODE);
 		}
 
-		virtual size_t size() const final {
+		virtual size_t size() const final override {
 			return 1;
 		}
 
@@ -154,7 +154,6 @@ template <uint8_t NB_ROWS, int ... PINS> class ZzzButtonDriverKeyPadMatrix : pub
 };
 
 /**
- * FIXME Test
  * Driver to connect a matrix keypad through I2C and PCF8574
  * @param ADDRESS I2C address to access PCF8574 connected to the keypad
  * @param WIRE template parameter allow to define custom Wire library
@@ -169,11 +168,17 @@ template <uint8_t NB_ROWS, int ... PINS> class ZzzButtonDriverKeyPadMatrix : pub
 template <uint8_t NB_ROWS, uint8_t NB_COLS, typename WIRE, uint8_t ADDRESS=0x38> class ZzzButtonDriverI2CKeyPadPCF8574 : public ZzzButtonDriver {
 	protected:
 		WIRE *_pWire;
+		uint8_t _rowMask;
+		uint8_t _colMask;
 
 	public:
 		ZzzButtonDriverI2CKeyPadPCF8574(void* pParams) {
 			_pWire=(WIRE*)pParams;
 			_pWire->begin();
+
+			_rowMask=(1<<NB_ROWS)-1; //1: 0b00000001, 2: 0b00000011, ... 5: 0b00011111 (2^5 - 1 = 32 - 1 = 31)
+			uint16_t fullMask=(1<<(NB_ROWS+NB_COLS))-1;
+			_colMask=(~_rowMask) & fullMask; //Invert mask to request column
 		}
 
 		virtual size_t size() const final override {
@@ -188,30 +193,30 @@ template <uint8_t NB_ROWS, uint8_t NB_COLS, typename WIRE, uint8_t ADDRESS=0x38>
 			if (NB_ROWS>5) {
 				return 0; //not supported
 			}
-			uint8_t rowMask=(1<<NB_ROWS)-1; //1: 0b00000001, 2: 0b00000011, ... 5: 0b00011111 (2^5 - 1 = 32 - 1 = 31)
 
+			//Set row to HIGH if press is detected read will return LOW
 			_pWire->beginTransmission(ADDRESS);
-  			_pWire->write(rowMask);
+  			_pWire->write(_rowMask);
   			if (_pWire->endTransmission() != 0) { //communication error
 				return 0;
 			}
 			_pWire->requestFrom(ADDRESS, (uint8_t)1);
 			uint8_t rowResponse=_pWire->read();
 			
-			if (rowResponse==rowMask) { //no press detected
+			if (rowResponse==_rowMask) { //no press detected
 				return 0;
 			}
 
-			uint8_t colMask=~rowMask; //Invert mask to request column
+			//Set col to HIGH if press is detected read will return LOW
 			_pWire->beginTransmission(ADDRESS);
-  			_pWire->write(colMask);
+  			_pWire->write(_colMask);
   			if (_pWire->endTransmission() != 0) { //communication error
 				return 0;
 			}
 			_pWire->requestFrom(ADDRESS, (uint8_t)1);
 			uint8_t colResponse=_pWire->read();
 
-			if (colResponse==colMask) { //no press detected
+			if (colResponse==_colMask) { //no press detected
 				return 0;
 			}
 
@@ -231,7 +236,10 @@ template <uint8_t NB_ROWS, uint8_t NB_COLS, typename WIRE, uint8_t ADDRESS=0x38>
 				//invalid data
 				return 0;
 			}
-			return 1 << ((row*NB_ROWS + col)+1);
+
+			//Use row and column reads to set correct button ID
+			unsigned long pressedState=1 << (row*NB_COLS + col);
+			return pressedState;
 		}
 };
 
