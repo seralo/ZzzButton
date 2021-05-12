@@ -6,10 +6,10 @@ jobs:
       - uses: actions/checkout@v2
       - uses: arduino/arduino-lint-action@v1
         with:
-          library-manager: submit
-#      - uses: arduino/compile-sketches@v1
-#        with:
-#          fqbn: 'arduino:avr:uno'
-#          libraries: |
-#            - name: ZzzButton
+          library-manager: update
+      - uses: arduino/compile-sketches@v1
+        with:
+          fqbn: 'arduino:avr:uno'
+          libraries: |
+            - name: ZzzButton
 
