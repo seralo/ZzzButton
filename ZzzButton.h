@@ -168,6 +168,7 @@ template <uint8_t NB_ROWS, int ... PINS> class ZzzButtonDriverKeyPadMatrix : pub
 		}
 };
 
+
 /**
  * Driver to connect a matrix keypad through PCF8574 using I2C protocol
  * @param ADDRESS I2C address to access PCF8574 connected to the keypad
