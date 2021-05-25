@@ -344,7 +344,7 @@ template <typename WIRE, uint8_t BUTTON_PORT=ZZZ_M5STACKPBHUB0, int PRESS_VALUE_
 
 /**
  * Driver for multiple drivers
- * NB_DRIVER is the number of drivers to allocate. It should match constructor call otherwise result is unpredictable. (Max 5 drivers)
+ * NB_DRIVER is the number of drivers to allocate. It should match constructor call otherwise result is unpredictable. (Max 8 drivers)
  */
 template <size_t NB_DRIVER> class ZzzButtonDriverMulti
 		: public ZzzButtonDriver {
@@ -387,6 +387,39 @@ template <size_t NB_DRIVER> class ZzzButtonDriverMulti
 			_pDriver[2]=&driver3;
 			_pDriver[3]=&driver4;
 			_pDriver[4]=&driver5;
+			computeButtons();
+		}
+
+		ZzzButtonDriverMulti(ZzzButtonDriver &driver1, ZzzButtonDriver &driver2, ZzzButtonDriver &driver3, ZzzButtonDriver &driver4, ZzzButtonDriver &driver5, ZzzButtonDriver &driver6) {
+			_pDriver[0]=&driver1;
+			_pDriver[1]=&driver2;
+			_pDriver[2]=&driver3;
+			_pDriver[3]=&driver4;
+			_pDriver[4]=&driver5;
+			_pDriver[5]=&driver6;
+			computeButtons();
+		}
+
+		ZzzButtonDriverMulti(ZzzButtonDriver &driver1, ZzzButtonDriver &driver2, ZzzButtonDriver &driver3, ZzzButtonDriver &driver4, ZzzButtonDriver &driver5, ZzzButtonDriver &driver6, ZzzButtonDriver &driver7) {
+			_pDriver[0]=&driver1;
+			_pDriver[1]=&driver2;
+			_pDriver[2]=&driver3;
+			_pDriver[3]=&driver4;
+			_pDriver[4]=&driver5;
+			_pDriver[5]=&driver6;
+			_pDriver[6]=&driver7;
+			computeButtons();
+		}
+
+		ZzzButtonDriverMulti(ZzzButtonDriver &driver1, ZzzButtonDriver &driver2, ZzzButtonDriver &driver3, ZzzButtonDriver &driver4, ZzzButtonDriver &driver5, ZzzButtonDriver &driver6, ZzzButtonDriver &driver7, ZzzButtonDriver &driver8) {
+			_pDriver[0]=&driver1;
+			_pDriver[1]=&driver2;
+			_pDriver[2]=&driver3;
+			_pDriver[3]=&driver4;
+			_pDriver[4]=&driver5;
+			_pDriver[5]=&driver6;
+			_pDriver[6]=&driver7;
+			_pDriver[7]=&driver8;
 			computeButtons();
 		}
 
