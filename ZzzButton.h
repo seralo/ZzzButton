@@ -7,6 +7,21 @@
 #define ZZZ_DEFAULT_PCF8574_ADDRESS   0x20
 #define ZZZ_DEFAULT_PCF8574A_ADDRESS  0x38
 
+//M5Stack PBHUB default address
+#define ZZZ_M5STACKPBHUB_ADDRESS 0x61
+//M5Stack PBHUB ports 1-6
+#define ZZZ_M5STACKPBHUB0        0x40
+#define ZZZ_M5STACKPBHUB1        0x50
+#define ZZZ_M5STACKPBHUB2        0x60
+#define ZZZ_M5STACKPBHUB3        0x70
+#define ZZZ_M5STACKPBHUB4        0x80
+#define ZZZ_M5STACKPBHUB5        0xA0
+
+#define ZZZ_LOW         0
+#define ZZZ_HIGH        1
+#define ZZZ_DISABLE     2
+#define ZZZ_ANALOG      3
+
 /*
  TODO i2c controlled buttons driver (M5Stack PbHub B, pcf8574...)
 */
@@ -175,8 +190,8 @@ template <uint8_t NB_ROWS, uint8_t NB_COLS, typename WIRE, uint8_t ADDRESS=ZZZ_D
 		uint8_t _colMask;
 
 	public:
-		ZzzButtonDriverI2CKeyPadPCF8574(void* pParams) {
-			_pWire=(WIRE*)pParams;
+		ZzzButtonDriverI2CKeyPadPCF8574(WIRE& pParams) {
+			_pWire=&pParams;
 			_pWire->begin();
 
 			_rowMask=(1<<NB_ROWS)-1; //1: 0b00000001, 2: 0b00000011, ... 5: 0b00011111 (2^5 - 1 = 32 - 1 = 31)
@@ -248,7 +263,88 @@ template <uint8_t NB_ROWS, uint8_t NB_COLS, typename WIRE, uint8_t ADDRESS=ZZZ_D
 
 
 /**
- * FIXME Test
+ * Driver to connect buttons via M5Stack PbHub
+ * @param ADDRESS I2C address to access PbHub
+ * @param BUTTON_PORT Port on PbHub where buttons are connected
+ * @param PRESS_VALUE_A HIGH/LOW or ZZZ_DISABLE to disable A reads or ZZZ_ANALOG to read analog value (instead of Digital value which fail with M5Stack dual buttons)
+ * @param PRESS_VALUE_B HIGH/LOW or ZZZ_DISABLE to disable B reads
+ * @param WIRE template parameter allow to define custom Wire library
+ */
+template <typename WIRE, uint8_t BUTTON_PORT=ZZZ_M5STACKPBHUB0, int PRESS_VALUE_A=ZZZ_ANALOG, int PRESS_VALUE_B=LOW, uint8_t ADDRESS=ZZZ_M5STACKPBHUB_ADDRESS> class ZzzButtonDriverPbHub : public ZzzButtonDriver {
+	protected:
+		WIRE *_pWire;
+		const int COMMAND_A=0x04; //hub_d_read_value_A: digital read command on A wire
+		const int COMMAND_A_ANALOG=0x06; //hub_a_read_value: analog read command on A wire
+		const int COMMAND_B=0x05; //hub_d_read_value_B: digital read command on B wire
+
+	public:
+		ZzzButtonDriverPbHub(WIRE& pParams) {
+			_pWire=&pParams;
+			_pWire->begin();
+		}
+
+		virtual size_t size() const final override {
+			return ((PRESS_VALUE_A!=ZZZ_DISABLE) ? 1 : 0) + ((PRESS_VALUE_B!=ZZZ_DISABLE) ? 1 : 0);
+		}
+
+		virtual unsigned long getPressedStates() override {
+			if (_pWire==nullptr) {
+				return 0; //need to set wire
+			}
+
+			unsigned long pressedState=0;
+			int pressValue=1; //to determine B button index in case A has been disabled
+
+			//Read A state
+			if (PRESS_VALUE_A!=ZZZ_DISABLE) {
+				if (PRESS_VALUE_A==ZZZ_ANALOG) { //Analog read
+					_pWire->beginTransmission(ADDRESS);
+					_pWire->write(BUTTON_PORT | COMMAND_A_ANALOG);
+					if (_pWire->endTransmission() != 0) { //communication error
+						return 0;
+					}
+					_pWire->requestFrom(ADDRESS, (uint8_t)2);
+					uint8_t stateL=_pWire->read();
+					uint8_t stateH=_pWire->read();
+					uint16_t stateA=(stateH<<8) | stateL;
+					if (stateA<100) {
+						pressedState|=pressValue;
+					}
+				} else { //Digital read
+					_pWire->beginTransmission(ADDRESS);
+					_pWire->write(BUTTON_PORT | COMMAND_A);
+					if (_pWire->endTransmission() != 0) { //communication error
+						return 0;
+					}
+					_pWire->requestFrom(ADDRESS, (uint8_t)1);
+					uint8_t stateA=_pWire->read();
+					if (stateA==PRESS_VALUE_A) {
+						pressedState|=pressValue;
+					}
+				}
+
+				pressValue=pressValue<<1;
+			}
+
+			//Read B state
+			if (PRESS_VALUE_B!=ZZZ_DISABLE) {
+				_pWire->beginTransmission(ADDRESS);
+				_pWire->write(BUTTON_PORT | COMMAND_B);
+				if (_pWire->endTransmission() != 0) { //communication error
+					return 0;
+				}
+				_pWire->requestFrom(ADDRESS, (uint8_t)1);
+				uint8_t stateB=_pWire->read();
+				if (stateB==PRESS_VALUE_B) {
+					pressedState|=pressValue;
+				}
+			}
+			return pressedState;
+		}
+};
+
+
+/**
  * Driver for multiple drivers
  * NB_DRIVER is the number of drivers to allocate. It should match constructor call otherwise result is unpredictable. (Max 5 drivers)
  */
