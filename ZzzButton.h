@@ -22,9 +22,6 @@
 #define ZZZ_DISABLE     2
 #define ZZZ_ANALOG      3
 
-/*
- TODO i2c controlled buttons driver (M5Stack PbHub B, pcf8574...)
-*/
 
 /** Callback to receive button change notifications */
 typedef void(*ZzzButtonCallback)(size_t buttonIndex, unsigned int buttonState);
@@ -413,7 +410,7 @@ template <size_t NB_DRIVER> class ZzzButtonDriverMulti
 
 
 /**
- * Template class to manage a button or a set of buttons. The template need a Driver parameter to check the buttons states.
+ * Class to manage a button or a set of buttons. The template need a Driver parameter to check the buttons states.
  * The driver class must implement getPressedStates(), size() and getIntervalUs().
  */
 class ZzzButton {
