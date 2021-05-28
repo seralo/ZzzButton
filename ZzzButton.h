@@ -522,7 +522,7 @@ class ZzzButton {
 				} else {
 					if (_lastStates!=_lastNotifiedStates) {
 						//debounce
-						if (millis() - _lastStatesMs > _debounceMs) {
+						if (millis() - _lastStatesMs >= _debounceMs) {
 							//set notified state before callback calls in case status (isPressed()) is requested in the callback
 							unsigned long oldStates=_lastNotifiedStates;
 							_lastNotifiedStates=_lastStates;
@@ -545,7 +545,7 @@ class ZzzButton {
 					} else { //check long press
 						//at least one button is pressed
 						if (_lastNotifiedStates > 0) {
-							if (millis() - _lastNotifiedStatesMs > _longPressMs) {
+							if (millis() - _lastNotifiedStatesMs >= _longPressMs) {
 								if (_callback!=nullptr) {
 									for (size_t i=0;i<_pDriver->size();i++) {
 										unsigned long bitMask=(1<<i);
