@@ -436,7 +436,7 @@ template <size_t NB_DRIVER> class ZzzButtonDriverMulti
 				if (pressedStates>0) { //if at least one press detected update result
 					result|=(offset<<pressedStates);
 				}
-				offset=_pDriver[i]->size();
+				offset+=_pDriver[i]->size();
 			}
 			return result;
 		}
