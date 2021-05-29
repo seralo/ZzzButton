@@ -434,7 +434,7 @@ template <size_t NB_DRIVER> class ZzzButtonDriverMulti
 			for (int i=1;i<NB_DRIVER;i++) {
 				unsigned long pressedStates=_pDriver[i]->getPressedStates();
 				if (pressedStates>0) { //if at least one press detected update result
-					result|=(offset<<pressedStates);
+					result|=(pressedStates<<offset);
 				}
 				offset+=_pDriver[i]->size();
 			}
@@ -463,10 +463,6 @@ class ZzzButton {
 		/** Last notified states */
 		unsigned long _lastNotifiedStates=0;
 		unsigned long _lastNotifiedStatesMs=0;
-
-		/** To detect clic. Clic and double clic can only be detected one button at a time. */
-		size_t lastClicButtonIndex=0;
-		unsigned long lastClicMs=0;
 
 		ZzzButtonDriver *_pDriver;
 
@@ -534,10 +530,6 @@ class ZzzButton {
 									int state=(_lastStates & bitMask)!=0 ? STATE_PRESS : STATE_RELEASE;
 									if (_callback!=nullptr) {
 										_callback(i, state);
-									}
-									if (state==STATE_RELEASE) {
-										lastClicButtonIndex=i;
-										lastClicMs=millis();
 									}
 								}
 							}
